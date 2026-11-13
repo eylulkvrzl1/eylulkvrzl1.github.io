@@ -236,6 +236,11 @@ footer { display: flex; justify-content: space-between; color: #464e5d; font-siz
 .mm-layout { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 14px; }
 .mm-input-panel, .mm-summary, .instant-panel { padding: 22px 24px; }
 .mm-input-panel .field-grid { grid-template-columns: 1fr 1fr; }
+.live-pool-button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 15px; border: 1px solid #4a456f; border-radius: 9px; background: linear-gradient(135deg, #211d35, #17243e); color: #dedaff; padding: 10px 12px; text-align: left; cursor: pointer; transition: .2s; }
+.live-pool-button:hover { border-color: #7768d7; background: linear-gradient(135deg, #292242, #1b2e50); }
+.live-pool-button:disabled { opacity: .55; cursor: wait; }
+.live-pool-button span { font-size: 9px; font-weight: 750; }
+.live-pool-button small { color: #818ba0; font-size: 7px; text-align: right; }
 .mm-summary .metrics-grid { margin-top: 14px; }
 .mm-health { max-width: 290px; display: flex; align-items: center; gap: 9px; border: 1px solid #24483e; border-radius: 9px; background: #0e211d; padding: 8px 10px; }
 .mm-health.warn { border-color: #5a2d37; background: #251319; }
@@ -251,6 +256,18 @@ footer { display: flex; justify-content: space-between; color: #464e5d; font-siz
 .instant-panel > .field { margin-top: 16px; }
 .instant-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 .instant-panel .formula-strip { grid-template-columns: 1fr; gap: 6px; }
+.simple-chart-panel { min-height: 0; }
+.simple-chart-wrap { height: 225px; margin-top: 14px; }
+.simple-price-chart { height: 100%; border: 1px solid #1e2530; border-radius: 9px; background: #080b10; overflow: hidden; }
+.simple-price-chart svg { display: block; width: 100%; height: 145px; }
+.simple-baseline { stroke: #29303a; stroke-width: 1; stroke-dasharray: 4 5; vector-effect: non-scaling-stroke; }
+.simple-price-line { fill: none; stroke: #7868ff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.simple-price-point { fill: #36d6b4; stroke: #c7fff2; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.price-checkpoints { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid #1e2530; }
+.price-checkpoints div { padding: 10px 12px; text-align: center; border-right: 1px solid #1e2530; }
+.price-checkpoints div:last-child { border-right: 0; }
+.price-checkpoints span { display: block; color: #667082; font-size: 7px; text-transform: uppercase; letter-spacing: .08em; }
+.price-checkpoints strong { display: block; color: #e4e7ed; margin-top: 4px; font-size: 10px; }
 .live-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 17px; }
 .live-source { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .live-source > span { color: var(--teal); font-size: 9px; font-weight: 750; }
@@ -327,6 +344,8 @@ footer { display: flex; justify-content: space-between; color: #464e5d; font-siz
   .active-stage { padding-top: 46px; }
   .mm-layout, .mm-lower, .live-grid { grid-template-columns: 1fr; }
   .mm-input-panel .field-grid { grid-template-columns: 1fr; }
+  .live-pool-button { align-items: flex-start; flex-direction: column; }
+  .live-pool-button small { text-align: left; }
   .mm-health { max-width: 170px; }
   .instant-results, .live-metrics { grid-template-columns: 1fr 1fr; }
   .live-toolbar, .live-source { align-items: flex-start; }
