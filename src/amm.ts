@@ -1,5 +1,7 @@
 export type Side = 'buy' | 'sell'
 export const MAX_DAILY_ORDERS = 100_000
+export const MAX_PLAN_DAYS = 365
+export const MAX_TOTAL_ORDERS = 100_000
 
 export type PoolState = {
   tokenReserve: number
@@ -91,6 +93,8 @@ export type DailyPlan = {
   orderSizeUsd: number
   buyVolumeUsd: number
   sellVolumeUsd: number
+  buyOutputQtm: number
+  sellInputQtm: number
   requiredUsdt: number
   requiredQtm: number
   feesUsd: number
@@ -122,6 +126,8 @@ export function simulateDailyPlan(initial: PoolState, requestedOrders: number, b
   let maxImpactPct = 0
   let buyVolumeUsd = 0
   let sellVolumeUsd = 0
+  let buyOutputQtm = 0
+  let sellInputQtmExecuted = 0
   const pricePath = [poolPrice(state)]
 
   for (let index = 0; index < orders; index += 1) {
@@ -132,7 +138,17 @@ export function simulateDailyPlan(initial: PoolState, requestedOrders: number, b
     feesUsd += trade.feeValueUsd
     taxesUsd += trade.taxValueUsd
     maxImpactPct = Math.max(maxImpactPct, Math.abs(trade.impactPct))
-    if (side === 'buy') { cash -= input; tokens += trade.output; buyVolumeUsd += input } else { tokens -= input; cash += trade.output; sellVolumeUsd += trade.output }
+    if (side === 'buy') {
+      cash -= input
+      tokens += trade.output
+      buyVolumeUsd += input
+      buyOutputQtm += trade.output
+    } else {
+      tokens -= input
+      cash += trade.output
+      sellVolumeUsd += trade.output
+      sellInputQtmExecuted += input
+    }
     minCash = Math.min(minCash, cash)
     minTokens = Math.min(minTokens, tokens)
     pricePath.push(trade.priceAfter)
@@ -146,6 +162,8 @@ export function simulateDailyPlan(initial: PoolState, requestedOrders: number, b
     orderSizeUsd: orders > 0 ? totalVolumeUsd / orders : 0,
     buyVolumeUsd,
     sellVolumeUsd,
+    buyOutputQtm,
+    sellInputQtm: sellInputQtmExecuted,
     requiredUsdt: Math.max(0, -minCash),
     requiredQtm: Math.max(0, -minTokens),
     feesUsd,
@@ -155,6 +173,104 @@ export function simulateDailyPlan(initial: PoolState, requestedOrders: number, b
     endDriftPct: (finalPrice / pricePath[0] - 1) * 100,
     pricePath,
     finalState: state,
+  }
+}
+
+export type PlanDay = DailyPlan & {
+  day: number
+  startState: PoolState
+  startPrice: number
+  endPrice: number
+  dailyChangePct: number
+  totalChangePct: number
+  tokenReserveChange: number
+  quoteReserveChange: number
+}
+
+export type MultiDayPlan = Omit<DailyPlan, 'orders'> & {
+  days: number
+  orders: number
+  ordersPerDay: number
+  daily: PlanDay[]
+}
+
+export function simulateMultiDayPlan(initial: PoolState, requestedOrdersPerDay: number, requestedDays: number, buyInputUsd: number, sellInputQtm: number, feeRate: number, tokenTaxRate: number, sides: DailyPlanSides = { buy: true, sell: true }): MultiDayPlan {
+  const ordersPerDay = Math.max(0, Math.round(nonnegative(requestedOrdersPerDay, 'Orders per day')))
+  const days = Math.max(1, Math.round(positive(requestedDays, 'Days')))
+  if (ordersPerDay > MAX_DAILY_ORDERS) throw new Error(`Orders cannot exceed ${MAX_DAILY_ORDERS}`)
+  if (days > MAX_PLAN_DAYS) throw new Error(`Days cannot exceed ${MAX_PLAN_DAYS}`)
+  if (ordersPerDay * days > MAX_TOTAL_ORDERS) throw new Error(`Total orders cannot exceed ${MAX_TOTAL_ORDERS}`)
+
+  const initialPrice = poolPrice(initial)
+  let state = { ...initial }
+  let cumulativeCash = 0
+  let cumulativeTokens = 0
+  let minimumCash = 0
+  let minimumTokens = 0
+  let buyVolumeUsd = 0
+  let sellVolumeUsd = 0
+  let buyOutputQtm = 0
+  let sellInputQtmTotal = 0
+  let feesUsd = 0
+  let taxesUsd = 0
+  let maxImpactPct = 0
+  const pricePath = [initialPrice]
+  const daily: PlanDay[] = []
+
+  for (let day = 1; day <= days; day += 1) {
+    const startState = { ...state }
+    const startPrice = poolPrice(startState)
+    const result = simulateDailyPlan(startState, ordersPerDay, buyInputUsd, sellInputQtm, feeRate, tokenTaxRate, sides)
+    state = result.finalState
+    minimumCash = Math.min(minimumCash, cumulativeCash - result.requiredUsdt)
+    minimumTokens = Math.min(minimumTokens, cumulativeTokens - result.requiredQtm)
+    cumulativeCash += result.sellVolumeUsd - result.buyVolumeUsd
+    cumulativeTokens += result.buyOutputQtm - result.sellInputQtm
+    buyVolumeUsd += result.buyVolumeUsd
+    sellVolumeUsd += result.sellVolumeUsd
+    buyOutputQtm += result.buyOutputQtm
+    sellInputQtmTotal += result.sellInputQtm
+    feesUsd += result.feesUsd
+    taxesUsd += result.taxesUsd
+    maxImpactPct = Math.max(maxImpactPct, result.maxImpactPct)
+    pricePath.push(...result.pricePath.slice(1))
+    const endPrice = poolPrice(state)
+    daily.push({
+      ...result,
+      day,
+      startState,
+      startPrice,
+      endPrice,
+      dailyChangePct: (endPrice / startPrice - 1) * 100,
+      totalChangePct: (endPrice / initialPrice - 1) * 100,
+      tokenReserveChange: state.tokenReserve - startState.tokenReserve,
+      quoteReserveChange: state.quoteReserve - startState.quoteReserve,
+    })
+  }
+
+  const finalPrice = poolPrice(state)
+  const markedBalance = cumulativeCash + cumulativeTokens * finalPrice
+  const orders = ordersPerDay * days
+  const totalVolumeUsd = buyVolumeUsd + sellVolumeUsd
+  return {
+    days,
+    orders,
+    ordersPerDay,
+    orderSizeUsd: orders > 0 ? totalVolumeUsd / orders : 0,
+    buyVolumeUsd,
+    sellVolumeUsd,
+    buyOutputQtm,
+    sellInputQtm: sellInputQtmTotal,
+    requiredUsdt: Math.max(0, -minimumCash),
+    requiredQtm: Math.max(0, -minimumTokens),
+    feesUsd,
+    taxesUsd,
+    executionCostUsd: Math.max(0, -markedBalance),
+    maxImpactPct,
+    endDriftPct: (finalPrice / initialPrice - 1) * 100,
+    pricePath,
+    finalState: state,
+    daily,
   }
 }
 

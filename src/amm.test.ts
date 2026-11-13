@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createPool, executeSelectedTrades, executeTrade, MAX_DAILY_ORDERS, maxBuyForImpact, poolPrice, simulateDailyPlan } from './amm'
+import { createPool, executeSelectedTrades, executeTrade, MAX_DAILY_ORDERS, MAX_TOTAL_ORDERS, maxBuyForImpact, poolPrice, simulateDailyPlan, simulateMultiDayPlan } from './amm'
 
 describe('QTM V2 market-maker calculations', () => {
   const fee = .0025
@@ -111,6 +111,39 @@ describe('QTM V2 market-maker calculations', () => {
 
     expect(plan.pricePath[0]).toBeCloseTo(instant.priceAfter, 12)
     expect(plan.pricePath[0]).not.toBeCloseTo(poolPrice(initial), 6)
+  })
+
+  it('chains every day from the previous day final pool', () => {
+    const initial = createPool(100_000, .01)
+    const plan = simulateMultiDayPlan(initial, 2, 5, 1_000, 50_000, fee, 0, { buy: true, sell: false })
+    let expected = initial
+    for (let index = 0; index < 10; index += 1) expected = executeTrade(expected, 'buy', 1_000, fee, 0).state
+
+    expect(plan.days).toBe(5)
+    expect(plan.orders).toBe(10)
+    expect(plan.daily).toHaveLength(5)
+    expect(plan.daily[1].startState).toEqual(plan.daily[0].finalState)
+    expect(plan.daily[4].finalState).toEqual(expected)
+    expect(plan.requiredUsdt).toBe(10_000)
+    expect(plan.buyVolumeUsd).toBe(10_000)
+  })
+
+  it('restarts the selected daily order sequence at the beginning of each day', () => {
+    const initial = createPool(100_000, .01)
+    const plan = simulateMultiDayPlan(initial, 3, 2, 1_000, 50_000, fee, 0, { buy: true, sell: true })
+    let expected = initial
+    for (const side of ['buy', 'sell', 'buy', 'buy', 'sell', 'buy'] as const) {
+      expected = executeTrade(expected, side, side === 'buy' ? 1_000 : 50_000, fee, 0).state
+    }
+
+    expect(plan.finalState).toEqual(expected)
+    expect(plan.daily[0].orders).toBe(3)
+    expect(plan.daily[1].orders).toBe(3)
+  })
+
+  it('rejects plans whose combined day and order count exceeds the browser-safe limit', () => {
+    const initial = createPool(100_000, .01)
+    expect(() => simulateMultiDayPlan(initial, MAX_TOTAL_ORDERS, 2, 1_000, 50_000, fee, 0, { buy: true, sell: false })).toThrow(/Total orders/)
   })
 
   it('can include a buy while leaving the sell completely disabled', () => {
