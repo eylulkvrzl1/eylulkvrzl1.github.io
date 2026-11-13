@@ -61,7 +61,7 @@ function PriceChart({ values, labels, changeLabel, priceAxis, orderAxis, orderLa
   const totalChange = start === 0 ? 0 : (end / start - 1) * 100
   const trend = totalChange > .000001 ? 'up' : totalChange < -.000001 ? 'down' : 'flat'
   const changeText = trend === 'flat' ? '0%' : percent(totalChange)
-  const width = 780, height = 275, left = 82, right = 24, top = 24, bottom = 48
+  const width = 780, height = 275, left = 116, right = 24, top = 24, bottom = 48
   const plotWidth = width - left - right, plotHeight = height - top - bottom
   const rawMin = values.reduce((minimum, value) => Math.min(minimum, value), start)
   const rawMax = values.reduce((maximum, value) => Math.max(maximum, value), start)
@@ -88,14 +88,14 @@ function PriceChart({ values, labels, changeLabel, priceAxis, orderAxis, orderLa
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${labels[0]} ${priceText(start)} USDT, ${labels[2]} ${priceText(end)} USDT, ${changeLabel} ${changeText}`}>
         <title>{`${labels[0]}: ${priceText(start)} USDT. ${labels[2]}: ${priceText(end)} USDT.`}</title>
         <desc>{`${totalOrders} ${orderLabel}. ${changeLabel}: ${changeText}.`}</desc>
-        {yTicks.map((tick) => <g key={tick}><line x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} className="chart-gridline" /><text x={left - 11} y={y(tick) + 4} textAnchor="end" className="chart-axis-text">${priceText(tick)}</text></g>)}
+        {yTicks.map((tick) => <g key={tick}><line x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} className="chart-gridline" /><text x={left - 16} y={y(tick) + 4} textAnchor="end" className="chart-axis-text">${priceText(tick)}</text></g>)}
         <line x1={left} x2={width - right} y1={y(start)} y2={y(start)} className="chart-start-line" />
         <path d={areaPath} className="chart-price-area" />
         <path d={linePath} className="chart-price-path" />
         {xTicks.map((tick) => <g key={tick}><line x1={x(tick)} x2={x(tick)} y1={top + plotHeight} y2={top + plotHeight + 5} className="chart-axis-mark" /><text x={x(tick)} y={height - 22} textAnchor="middle" className="chart-axis-text">{tick}</text></g>)}
         <circle cx={x(0)} cy={y(start)} r="5" className="chart-point start"><title>{`${labels[0]}: ${priceText(start)} USDT`}</title></circle>
         {totalOrders > 0 && <circle cx={x(totalOrders)} cy={y(end)} r="6" className={`chart-point ${trend}`}><title>{`${labels[2]}: ${priceText(end)} USDT`}</title></circle>}
-        <text x={18} y={height / 2} textAnchor="middle" transform={`rotate(-90 18 ${height / 2})`} className="chart-axis-title">{priceAxis}</text>
+        <text x={24} y={height / 2} textAnchor="middle" transform={`rotate(-90 24 ${height / 2})`} className="chart-axis-title">{priceAxis}</text>
         <text x={left + plotWidth / 2} y={height - 4} textAnchor="middle" className="chart-axis-title">{orderAxis}</text>
       </svg>
     </div>
