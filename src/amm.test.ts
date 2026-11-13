@@ -30,6 +30,27 @@ describe('QTM V2 market-maker calculations', () => {
     expect(plan.requiredUsdt).toBeGreaterThan(0)
   })
 
+  it('excludes every daily sell when the sell direction is disabled', () => {
+    const state = createPool(10_000, .01)
+    const plan = simulateDailyPlan(state, 100_000, 100, fee, 0, { buy: true, sell: false })
+
+    expect(plan.orders).toBe(100)
+    expect(plan.buyVolumeUsd).toBeCloseTo(100_000, 8)
+    expect(plan.sellVolumeUsd).toBe(0)
+    expect(plan.requiredQtm).toBe(0)
+    expect(plan.pricePath.at(-1)).toBeGreaterThan(poolPrice(state))
+  })
+
+  it('excludes every daily buy when only the sell direction is enabled', () => {
+    const state = createPool(10_000, .01)
+    const plan = simulateDailyPlan(state, 5_000, 100, fee, 0, { buy: false, sell: true })
+
+    expect(plan.buyVolumeUsd).toBe(0)
+    expect(plan.sellVolumeUsd).toBeCloseTo(5_000, 8)
+    expect(plan.requiredUsdt).toBe(0)
+    expect(plan.pricePath.at(-1)).toBeLessThan(poolPrice(state))
+  })
+
   it('starts the daily plan from the pool produced by the instant trade', () => {
     const initial = { tokenReserve: 1_000_000, quoteReserve: 10_000 }
     const instant = executeTrade(initial, 'buy', 1_000, fee, 0)
