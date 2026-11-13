@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { createPool, executeSelectedTrades, maxBuyForImpact, poolPrice, simulateDailyPlan } from './amm'
+import { createPool, executeSelectedTrades, maxBuyForImpact, simulateDailyPlan } from './amm'
 
 type Language = 'tr' | 'en'
 type Page = 'pool' | 'maker' | 'live'
@@ -18,7 +18,7 @@ const TEXT = {
     setupKicker: 'PANCAKESWAP V2 · İLK KURULUM', setupTitle: 'Fiyat ve likiditeyi belirleyin', setupDescription: 'İlk havuz oranı QTM fiyatını belirler. QTM tarafı USDT miktarından otomatik hesaplanır.', poolInputs: 'HAVUZ GİRDİLERİ', initialParameters: 'Başlangıç parametreleri', initialPrice: '1 QTM başlangıç fiyatı', liquidityInput: 'Eklenecek USDT likiditesi', fee: 'AMM işlem ücreti', tax: 'Token vergisi', requiredQtm: 'Gerekli QTM', formula: 'USDT likiditesi ÷ QTM fiyatı', initialPool: 'İLK HAVUZ KOMPOZİSYONU', balanced: 'Dengeli', qtmAmount: 'QTM miktarı', usdtAmount: 'USDT miktarı', initialValue: 'Toplam başlangıç değeri', reset: 'Başlangıca dön',
     step1: 'Pair oluştur', step1n: 'PancakeSwap V2 üzerinde QTM / USDT çiftini seçin.', step2: 'Fiyat oranını gir', step2n: 'USDT olarak başlangıç oranını belirleyin.', step3: 'Varlıkları ekle', step4: 'Onayla ve kilitle', step4n: 'LP token ve kilit süresini doğrulayın.',
     makerKicker: 'QUANTUM TOKEN · MARKET MAKER', makerTitle: 'Günlük hacim ve fiyat etkisini planlayın', makerDescription: 'Her emri seçtiğiniz alış veya satış miktarıyla sırayla V2 rezervlerine uygulayın.', poolState: 'BAŞLANGIÇ HAVUZU', planInputs: 'Market maker parametreleri', qtmReserve: 'QTM rezervi', usdtReserve: 'USDT rezervi', dailyVolume: 'Hesaplanan günlük hacim', orderCount: 'Günlük emir sayısı', impactLimit: 'Emir başına hareket sınırı', orderSize: 'Ortalama emir', buyVolume: 'Alış hacmi', sellVolume: 'Satış hacmi', requiredUsdtCapital: 'Gerekli USDT sermayesi', requiredQtmCapital: 'Gerekli başlangıç QTM', estimatedFees: 'Tahmini AMM ücretleri', estimatedTax: 'Tahmini token vergisi', executionCost: 'Tahmini uygulama maliyeti', endDrift: 'Gün sonu fiyat sapması', maxImpact: 'En yüksek emir etkisi', safeBuy: 'Sınır içi azami alış', healthy: 'Emir büyüklüğü seçilen sınır içinde.', warning: 'Emir büyüklüğü seçilen fiyat hareketi sınırını aşıyor.',
-    useLivePool: 'Canlı CMC havuzunu kullan', livePoolHint: 'CMC / BNB Chain rezervlerini girişlere aktarır', instant: 'GÜNLÜK EMİR YÖNLERİ', instantTitle: 'Emir başına miktarı belirleyin', buy: 'QTM al', sell: 'QTM sat', buyInput: 'Her alış emrinde harcanacak USDT', sellInput: 'Her satış emrinde satılacak QTM', included: 'Plana dahil', excluded: 'Dahil değil', receives: 'Alınacak miktar', priceAfterTrade: 'İşlem sonrası fiyat', priceImpact: 'Fiyat hareketi', afterPool: 'Seçili işlemler sonrası havuz', executionOrder: 'Günlük emir sayısı kadar işlem yapılır. İki yön açıksa emirler alıştan başlayarak sırayla alış ve satış olarak uygulanır.', chartTitle: 'Hesaplanan fiyat değişimi', chartDescription: 'Her emir, seçilen yönün emir başına miktarıyla başlangıç havuzuna sırayla uygulanır.', start: 'Başlangıç havuzu', afterInstant: 'İlk emir sonrası', afterDaily: 'Tüm emirler sonrası', notice: 'Bu araç meşru piyasa yapıcılık planlaması içindir; yapay veya kendi kendine eşleşen hacim üretimi için kullanılmamalıdır.', positiveError: 'Sıfırdan büyük bir değer girin.', nonnegativeError: 'Sıfır veya daha büyük bir değer girin.', rateError: '0 ile 100 arasında bir değer girin.', integerError: 'Sıfır veya pozitif tam sayı girin.', fixInputs: 'Sonuçları görmek için işaretli alanları düzeltin.', invalid: 'Geçersiz giriş',
+    useLivePool: 'Canlı CMC havuzunu kullan', livePoolHint: 'CMC / BNB Chain rezervlerini girişlere aktarır', instant: 'GÜNLÜK EMİR YÖNLERİ', instantTitle: 'Emir başına miktarı belirleyin', buy: 'QTM al', sell: 'QTM sat', buyInput: 'Her alış emrinde harcanacak USDT', sellInput: 'Her satış emrinde satılacak QTM', included: 'Plana dahil', excluded: 'Dahil değil', receives: 'Alınacak miktar', priceAfterTrade: 'İşlem sonrası fiyat', priceImpact: 'Fiyat hareketi', afterPool: 'Seçili işlemler sonrası havuz', executionOrder: 'Günlük emir sayısı kadar işlem yapılır. İki yön açıksa emirler alıştan başlayarak sırayla alış ve satış olarak uygulanır.', chartTitle: 'Emirler ilerledikçe fiyat', chartDescription: 'Çizgi, her emrin ardından oluşan gerçek havuz fiyatını gösterir.', start: 'Başlangıç fiyatı', afterInstant: 'İlk emir sonrası', afterDaily: 'Son fiyat', chartChange: 'Toplam değişim', chartPriceAxis: 'QTM fiyatı (USDT)', chartOrderAxis: 'Emir sırası', chartOrder: 'emir', notice: 'Bu araç meşru piyasa yapıcılık planlaması içindir; yapay veya kendi kendine eşleşen hacim üretimi için kullanılmamalıdır.', positiveError: 'Sıfırdan büyük bir değer girin.', nonnegativeError: 'Sıfır veya daha büyük bir değer girin.', rateError: '0 ile 100 arasında bir değer girin.', integerError: 'Sıfır veya pozitif tam sayı girin.', fixInputs: 'Sonuçları görmek için işaretli alanları düzeltin.', invalid: 'Geçersiz giriş',
     liveKicker: 'QTM · COINMARKETCAP DEX', liveTitle: 'QTM canlı piyasa görünümü', liveDescription: 'QTM/USDT havuzunun CoinMarketCap ve BNB Chain üzerinden alınan son verileri.', refresh: 'Şimdi yenile', refreshing: 'Yenileniyor', liveData: 'Canlı veri', snapshot: 'Son doğrulanmış snapshot', source: 'Kaynak', updated: 'Güncelleme', price: 'QTM fiyatı', liquidity: 'Likidite', volume24: '24s hacim', change1: '1s değişim', change24: '24s değişim', transactions: '24s işlem', buys: 'Alış', sells: 'Satış', holders: 'Holder', fdv: 'FDV', poolDetails: 'HAVUZ BİLGİSİ', network: 'Ağ', dex: 'DEX', poolAddress: 'Pool adresi', tokenAddress: 'Token adresi', created: 'Havuz oluşturma', openCmc: 'CoinMarketCap sayfasını aç', unavailable: 'Veri yok', liveNote: 'CoinMarketCap anahtarsız API birincil kaynaktır. Kota veya CORS kısıtında rezervler doğrudan BNB Chain üzerinden yenilenir; CMC’ye özel eksik alanlar tahmin edilmez.',
   },
   en: {
@@ -27,7 +27,7 @@ const TEXT = {
     setupKicker: 'PANCAKESWAP V2 · INITIAL SETUP', setupTitle: 'Set price and liquidity', setupDescription: 'The initial pool ratio defines the QTM price. The QTM side is calculated from the USDT amount.', poolInputs: 'POOL INPUTS', initialParameters: 'Initial parameters', initialPrice: 'Initial price of 1 QTM', liquidityInput: 'USDT liquidity to add', fee: 'AMM trading fee', tax: 'Token tax', requiredQtm: 'Required QTM', formula: 'USDT liquidity ÷ QTM price', initialPool: 'INITIAL POOL COMPOSITION', balanced: 'Balanced', qtmAmount: 'QTM amount', usdtAmount: 'USDT amount', initialValue: 'Total initial value', reset: 'Reset inputs',
     step1: 'Create pair', step1n: 'Select the QTM / USDT pair on PancakeSwap V2.', step2: 'Enter price ratio', step2n: 'Set the initial ratio in USDT.', step3: 'Add assets', step4: 'Approve and lock', step4n: 'Verify LP tokens and the lock period.',
     makerKicker: 'QUANTUM TOKEN · MARKET MAKER', makerTitle: 'Plan daily volume and price impact', makerDescription: 'Apply every order sequentially to V2 reserves using your selected buy or sell amount.', poolState: 'STARTING POOL', planInputs: 'Market-maker parameters', qtmReserve: 'QTM reserve', usdtReserve: 'USDT reserve', dailyVolume: 'Calculated daily volume', orderCount: 'Orders per day', impactLimit: 'Movement limit per order', orderSize: 'Average order', buyVolume: 'Buy volume', sellVolume: 'Sell volume', requiredUsdtCapital: 'Required USDT capital', requiredQtmCapital: 'Required starting QTM', estimatedFees: 'Estimated AMM fees', estimatedTax: 'Estimated token tax', executionCost: 'Estimated execution drag', endDrift: 'End-of-day price drift', maxImpact: 'Maximum order impact', safeBuy: 'Maximum buy within limit', healthy: 'Order size stays inside the selected limit.', warning: 'Order size exceeds the selected price-movement limit.',
-    useLivePool: 'Use live CMC pool', livePoolHint: 'Loads CMC / BNB Chain reserves into the inputs', instant: 'DAILY ORDER DIRECTIONS', instantTitle: 'Set the amount per order', buy: 'Buy QTM', sell: 'Sell QTM', buyInput: 'USDT spent in each buy order', sellInput: 'QTM sold in each sell order', included: 'Included in plan', excluded: 'Not included', receives: 'Amount received', priceAfterTrade: 'Price after trade', priceImpact: 'Price movement', afterPool: 'Pool after selected trades', executionOrder: 'The selected number of daily orders is executed. When both directions are enabled, orders alternate between buy and sell, starting with buy.', chartTitle: 'Calculated price change', chartDescription: 'Each order is applied sequentially to the starting pool using the selected per-order amount.', start: 'Starting pool', afterInstant: 'After first order', afterDaily: 'After all orders', notice: 'This tool is for legitimate market-making planning; it should not be used to create artificial or self-matched volume.', positiveError: 'Enter a value greater than zero.', nonnegativeError: 'Enter zero or a greater value.', rateError: 'Enter a value from 0 up to 100.', integerError: 'Enter zero or a positive whole number.', fixInputs: 'Correct the highlighted fields to see results.', invalid: 'Invalid input',
+    useLivePool: 'Use live CMC pool', livePoolHint: 'Loads CMC / BNB Chain reserves into the inputs', instant: 'DAILY ORDER DIRECTIONS', instantTitle: 'Set the amount per order', buy: 'Buy QTM', sell: 'Sell QTM', buyInput: 'USDT spent in each buy order', sellInput: 'QTM sold in each sell order', included: 'Included in plan', excluded: 'Not included', receives: 'Amount received', priceAfterTrade: 'Price after trade', priceImpact: 'Price movement', afterPool: 'Pool after selected trades', executionOrder: 'The selected number of daily orders is executed. When both directions are enabled, orders alternate between buy and sell, starting with buy.', chartTitle: 'Price as orders progress', chartDescription: 'The line shows the actual pool price after every order.', start: 'Starting price', afterInstant: 'After first order', afterDaily: 'Final price', chartChange: 'Total change', chartPriceAxis: 'QTM price (USDT)', chartOrderAxis: 'Order sequence', chartOrder: 'orders', notice: 'This tool is for legitimate market-making planning; it should not be used to create artificial or self-matched volume.', positiveError: 'Enter a value greater than zero.', nonnegativeError: 'Enter zero or a greater value.', rateError: 'Enter a value from 0 up to 100.', integerError: 'Enter zero or a positive whole number.', fixInputs: 'Correct the highlighted fields to see results.', invalid: 'Invalid input',
     liveKicker: 'QTM · COINMARKETCAP DEX', liveTitle: 'QTM live market view', liveDescription: 'The latest QTM/USDT pool data available from CoinMarketCap and BNB Chain.', refresh: 'Refresh now', refreshing: 'Refreshing', liveData: 'Live data', snapshot: 'Last verified snapshot', source: 'Source', updated: 'Updated', price: 'QTM price', liquidity: 'Liquidity', volume24: '24h volume', change1: '1h change', change24: '24h change', transactions: '24h transactions', buys: 'Buys', sells: 'Sells', holders: 'Holders', fdv: 'FDV', poolDetails: 'POOL DETAILS', network: 'Network', dex: 'DEX', poolAddress: 'Pool address', tokenAddress: 'Token address', created: 'Pool created', openCmc: 'Open CoinMarketCap page', unavailable: 'Unavailable', liveNote: 'CoinMarketCap keyless API is primary. When quota or CORS restrictions apply, reserves refresh directly from BNB Chain; CMC-only missing fields are not estimated.',
   },
 } as const
@@ -55,14 +55,51 @@ function Metric({ label, value, note, accent = false }: { label: string; value: 
   return <div className={`metric ${accent ? 'metric-accent' : ''}`}><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</div>
 }
 
-function PriceChart({ values, labels }: { values: [number, number, number]; labels: [string, string, string] }) {
-  const summary = values
-  const width = 720, height = 150, padX = 70, padY = 28
-  const min = Math.min(...summary), max = Math.max(...summary), spread = max - min || max * .01 || 1
-  const x = (index: number) => padX + index * (width - padX * 2) / 2
-  const y = (value: number) => padY + (max - value) * (height - padY * 2) / spread
-  const points = summary.map((value, index) => `${x(index)},${y(value)}`).join(' ')
-  return <div className="simple-price-chart"><svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Daily price summary"><line x1={padX} x2={width - padX} y1={height / 2} y2={height / 2} className="simple-baseline" /><polyline points={points} className="simple-price-line" />{summary.map((value, index) => <circle key={labels[index]} cx={x(index)} cy={y(value)} r="6" className="simple-price-point" />)}</svg><div className="price-checkpoints">{summary.map((value, index) => <div key={labels[index]}><span>{labels[index]}</span><strong>${format(value, 6)}</strong></div>)}</div></div>
+function PriceChart({ values, labels, changeLabel, priceAxis, orderAxis, orderLabel }: { values: number[]; labels: [string, string, string]; changeLabel: string; priceAxis: string; orderAxis: string; orderLabel: string }) {
+  const start = values[0], first = values[1] ?? start, end = values.at(-1) ?? start
+  const totalOrders = Math.max(0, values.length - 1)
+  const totalChange = start === 0 ? 0 : (end / start - 1) * 100
+  const trend = totalChange > .000001 ? 'up' : totalChange < -.000001 ? 'down' : 'flat'
+  const changeText = trend === 'flat' ? '0%' : percent(totalChange)
+  const width = 780, height = 275, left = 82, right = 24, top = 24, bottom = 48
+  const plotWidth = width - left - right, plotHeight = height - top - bottom
+  const rawMin = values.reduce((minimum, value) => Math.min(minimum, value), start)
+  const rawMax = values.reduce((maximum, value) => Math.max(maximum, value), start)
+  const rawSpread = rawMax - rawMin
+  const padding = rawSpread > 0 ? rawSpread * .12 : Math.max(Math.abs(start) * .03, .000001)
+  const min = Math.max(0, rawMin - padding), max = rawMax + padding, spread = max - min || 1
+  const x = (index: number) => left + index / Math.max(totalOrders, 1) * plotWidth
+  const y = (value: number) => top + (max - value) / spread * plotHeight
+  const sampleStep = Math.max(1, Math.ceil(values.length / 140))
+  const series = values.map((value, index) => ({ value, index })).filter(({ index }) => index === 0 || index === values.length - 1 || index % sampleStep === 0)
+  const linePath = series.map(({ value, index }, pointIndex) => `${pointIndex === 0 ? 'M' : 'L'} ${x(index)} ${y(value)}`).join(' ')
+  const areaPath = `${linePath} L ${x(totalOrders)} ${top + plotHeight} L ${left} ${top + plotHeight} Z`
+  const yTicks = Array.from({ length: 5 }, (_, index) => max - index * spread / 4)
+  const xTicks = Array.from(new Set([0, Math.round(totalOrders / 2), totalOrders]))
+  const priceText = (value: number) => value >= 1 ? format(value, 4) : value >= .0001 ? format(value, 6) : value.toExponential(2)
+  return <div className={`price-chart price-chart-${trend}`} aria-live="polite">
+    <div className="chart-kpis">
+      <div><span>{labels[0]}</span><strong>${priceText(start)}</strong></div>
+      <div><span>{labels[1]}</span><strong>${priceText(first)}</strong></div>
+      <div><span>{labels[2]}</span><strong>${priceText(end)}</strong></div>
+      <div className={`chart-change ${trend}`}><span>{changeLabel}</span><strong>{changeText}</strong></div>
+    </div>
+    <div className="price-plot">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${labels[0]} ${priceText(start)} USDT, ${labels[2]} ${priceText(end)} USDT, ${changeLabel} ${changeText}`}>
+        <title>{`${labels[0]}: ${priceText(start)} USDT. ${labels[2]}: ${priceText(end)} USDT.`}</title>
+        <desc>{`${totalOrders} ${orderLabel}. ${changeLabel}: ${changeText}.`}</desc>
+        {yTicks.map((tick) => <g key={tick}><line x1={left} x2={width - right} y1={y(tick)} y2={y(tick)} className="chart-gridline" /><text x={left - 11} y={y(tick) + 4} textAnchor="end" className="chart-axis-text">${priceText(tick)}</text></g>)}
+        <line x1={left} x2={width - right} y1={y(start)} y2={y(start)} className="chart-start-line" />
+        <path d={areaPath} className="chart-price-area" />
+        <path d={linePath} className="chart-price-path" />
+        {xTicks.map((tick) => <g key={tick}><line x1={x(tick)} x2={x(tick)} y1={top + plotHeight} y2={top + plotHeight + 5} className="chart-axis-mark" /><text x={x(tick)} y={height - 22} textAnchor="middle" className="chart-axis-text">{tick}</text></g>)}
+        <circle cx={x(0)} cy={y(start)} r="5" className="chart-point start"><title>{`${labels[0]}: ${priceText(start)} USDT`}</title></circle>
+        {totalOrders > 0 && <circle cx={x(totalOrders)} cy={y(end)} r="6" className={`chart-point ${trend}`}><title>{`${labels[2]}: ${priceText(end)} USDT`}</title></circle>}
+        <text x={18} y={height / 2} textAnchor="middle" transform={`rotate(-90 18 ${height / 2})`} className="chart-axis-title">{priceAxis}</text>
+        <text x={left + plotWidth / 2} y={height - 4} textAnchor="middle" className="chart-axis-title">{orderAxis}</text>
+      </svg>
+    </div>
+  </div>
 }
 
 type MarketData = { source: string; updatedAt: string; price: number; liquidity: number; qtmReserve: number; usdtReserve: number; volume24: number | null; change1: number | null; change24: number | null; transactions: number | null; buys: number | null; sells: number | null; holders: number | null; fdv: number | null; created: string | null }
@@ -134,7 +171,6 @@ export default function App() {
   ), [mmPool, activeBuy, buyOrderAmount, activeSell, sellOrderAmount, fee, tax])
   const plan = useMemo(() => simulateDailyPlan(mmPool, orderTotal, buyOrderAmount, sellOrderAmount, fee, tax, { buy: activeBuy, sell: activeSell }), [mmPool, orderTotal, buyOrderAmount, sellOrderAmount, fee, tax, activeBuy, activeSell])
   const safeBuy = useMemo(() => maxBuyForImpact(mmPool.quoteReserve, impact, fee), [mmPool, impact, fee])
-  const chartValues: [number, number, number] = [poolPrice(mmPool), plan.pricePath[1] ?? plan.pricePath[0], plan.pricePath.at(-1)!]
 
   const refresh = useCallback(async () => {
     setLiveState('loading')
@@ -188,7 +224,7 @@ export default function App() {
           </div>
           <p className="execution-order">{t.executionOrder}</p>
         </div>
-        <div className="chart-panel panel simple-chart-panel"><div className="panel-title-row chart-title"><div><span className="overline no-rule">x × y = k</span><h3>{t.chartTitle}</h3><p>{t.chartDescription}</p></div></div>{makerValid ? <div className="chart-wrap simple-chart-wrap"><PriceChart values={chartValues} labels={[t.start, t.afterInstant, t.afterDaily]} /></div> : <div className="validation-panel chart-validation"><b>{t.invalid}</b><span>{t.fixInputs}</span></div>}</div>
+        <div className="chart-panel panel simple-chart-panel"><div className="panel-title-row chart-title"><div><span className="overline no-rule">x × y = k</span><h3>{t.chartTitle}</h3><p>{t.chartDescription}</p></div></div>{makerValid ? <div className="chart-wrap simple-chart-wrap"><PriceChart values={plan.pricePath} labels={[t.start, t.afterInstant, t.afterDaily]} changeLabel={t.chartChange} priceAxis={t.chartPriceAxis} orderAxis={t.chartOrderAxis} orderLabel={t.chartOrder} /></div> : <div className="validation-panel chart-validation"><b>{t.invalid}</b><span>{t.fixInputs}</span></div>}</div>
       </div>
       <div className="notice"><b>Model note</b><span>{t.notice}</span></div>
     </section>}

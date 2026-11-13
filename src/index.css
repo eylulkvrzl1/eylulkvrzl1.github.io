@@ -594,3 +594,42 @@ footer { margin-top: 35px; border-color: #d8dee9; color: #7b8698; }
   .steps-panel { grid-template-columns: 1fr; }
   .simple-chart-wrap { margin-left: 0; margin-right: 0; }
 }
+
+/* Explanatory market-maker price chart */
+.simple-chart-wrap { height: auto; margin-top: 14px; }
+.price-chart { overflow: hidden; border: 1px solid #d8dee9; border-radius: 8px; background: #fff; }
+.chart-kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid #d8dee9; background: #f8fafc; }
+.chart-kpis > div { min-width: 0; padding: 10px 12px; border-right: 1px solid #e1e6ed; }
+.chart-kpis > div:last-child { border-right: 0; }
+.chart-kpis span { display: block; color: #6d798e; font-size: 11px; }
+.chart-kpis strong { display: block; margin-top: 4px; overflow: hidden; color: #263249; font-size: 13px; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.chart-change.up strong { color: #177d69; }
+.chart-change.down strong { color: #bd4057; }
+.chart-change.flat strong { color: #52647f; }
+.price-plot { padding: 8px 8px 2px; }
+.price-plot svg { display: block; width: 100%; height: auto; min-height: 250px; }
+.chart-gridline { stroke: #e4e8ee; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-start-line { stroke: #8a94a6; stroke-width: 1.3; stroke-dasharray: 5 5; vector-effect: non-scaling-stroke; }
+.chart-price-area { fill: #6655cf12; pointer-events: none; }
+.chart-price-path { fill: none; stroke: #6655cf; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.price-chart-down .chart-price-area { fill: #d5546b12; }
+.price-chart-down .chart-price-path { stroke: #c94960; }
+.price-chart-up .chart-price-area { fill: #268e7a12; }
+.price-chart-up .chart-price-path { stroke: #218873; }
+.price-chart-flat .chart-price-path { stroke: #52647f; }
+.chart-axis-text { fill: #68758b; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart-axis-title { fill: #526078; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 700; }
+.chart-axis-mark { stroke: #aeb8c7; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-point { stroke: #fff; stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.chart-point.start { fill: #6655cf; }
+.chart-point.up { fill: #218873; }
+.chart-point.down { fill: #c94960; }
+.chart-point.flat { fill: #52647f; }
+
+@media (max-width: 620px) {
+  .chart-kpis { grid-template-columns: 1fr 1fr; }
+  .chart-kpis > div:nth-child(2) { border-right: 0; }
+  .chart-kpis > div:nth-child(-n+2) { border-bottom: 1px solid #e1e6ed; }
+  .price-plot { padding-left: 0; padding-right: 0; }
+  .price-plot svg { min-height: 220px; }
+}
