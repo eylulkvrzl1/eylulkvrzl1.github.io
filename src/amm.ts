@@ -93,16 +93,17 @@ export type DailyPlan = {
   maxImpactPct: number
   endDriftPct: number
   pricePath: number[]
+  finalState: PoolState
 }
 
 export type DailyPlanSides = { buy: boolean; sell: boolean }
 
-export function simulateDailyPlan(initial: PoolState, targetVolumeUsd: number, requestedOrders: number, feeRate: number, tokenTaxRate: number, sides: DailyPlanSides = { buy: true, sell: true }): DailyPlan {
-  positive(targetVolumeUsd, 'Target volume')
+export function simulateDailyPlan(initial: PoolState, requestedOrders: number, buyInputUsd: number, sellInputQtm: number, feeRate: number, tokenTaxRate: number, sides: DailyPlanSides = { buy: true, sell: true }): DailyPlan {
   const hasBothSides = sides.buy && sides.sell
   const hasSelectedSide = sides.buy || sides.sell
-  const orders = hasSelectedSide ? (hasBothSides ? Math.max(2, Math.round(requestedOrders / 2) * 2) : Math.max(1, Math.round(requestedOrders))) : 0
-  const orderSizeUsd = orders > 0 ? targetVolumeUsd / orders : 0
+  const orders = hasSelectedSide ? Math.max(1, Math.round(requestedOrders)) : 0
+  if (sides.buy) positive(buyInputUsd, 'Buy input')
+  if (sides.sell) positive(sellInputQtm, 'Sell input')
   let state = { ...initial }
   let cash = 0
   let tokens = 0
@@ -117,13 +118,13 @@ export function simulateDailyPlan(initial: PoolState, targetVolumeUsd: number, r
 
   for (let index = 0; index < orders; index += 1) {
     const side: Side = hasBothSides ? (index % 2 === 0 ? 'buy' : 'sell') : (sides.buy ? 'buy' : 'sell')
-    const input = side === 'buy' ? orderSizeUsd : orderSizeUsd / poolPrice(state)
+    const input = side === 'buy' ? buyInputUsd : sellInputQtm
     const trade = executeTrade(state, side, input, feeRate, tokenTaxRate)
     state = trade.state
     feesUsd += trade.feeValueUsd
     taxesUsd += trade.taxValueUsd
     maxImpactPct = Math.max(maxImpactPct, Math.abs(trade.impactPct))
-    if (side === 'buy') { cash -= input; tokens += trade.output; buyVolumeUsd += orderSizeUsd } else { tokens -= input; cash += trade.output; sellVolumeUsd += orderSizeUsd }
+    if (side === 'buy') { cash -= input; tokens += trade.output; buyVolumeUsd += input } else { tokens -= input; cash += trade.output; sellVolumeUsd += trade.output }
     minCash = Math.min(minCash, cash)
     minTokens = Math.min(minTokens, tokens)
     pricePath.push(trade.priceAfter)
@@ -131,9 +132,10 @@ export function simulateDailyPlan(initial: PoolState, targetVolumeUsd: number, r
 
   const finalPrice = poolPrice(state)
   const markedBalance = cash + tokens * finalPrice
+  const totalVolumeUsd = buyVolumeUsd + sellVolumeUsd
   return {
     orders,
-    orderSizeUsd,
+    orderSizeUsd: orders > 0 ? totalVolumeUsd / orders : 0,
     buyVolumeUsd,
     sellVolumeUsd,
     requiredUsdt: Math.max(0, -minCash),
@@ -144,6 +146,7 @@ export function simulateDailyPlan(initial: PoolState, targetVolumeUsd: number, r
     maxImpactPct,
     endDriftPct: (finalPrice / pricePath[0] - 1) * 100,
     pricePath,
+    finalState: state,
   }
 }
 

@@ -21,21 +21,39 @@ describe('QTM V2 market-maker calculations', () => {
     expect(result.output).toBeLessThan(1_000)
   })
 
-  it('creates an exact 50/50 two-sided daily notional plan', () => {
-    const plan = simulateDailyPlan(createPool(10_000, .01), 100_000, 100, fee, 0)
+  it('executes the exact selected number of fixed-size buy orders', () => {
+    const state = createPool(100_000, .01)
+    const plan = simulateDailyPlan(state, 100, 1_000, 100_000, fee, 0, { buy: true, sell: false })
+    let expected = state
+    for (let index = 0; index < 100; index += 1) expected = executeTrade(expected, 'buy', 1_000, fee, 0).state
+
     expect(plan.orders).toBe(100)
-    expect(plan.buyVolumeUsd + plan.sellVolumeUsd).toBe(100_000)
     expect(plan.orderSizeUsd).toBe(1_000)
+    expect(plan.buyVolumeUsd).toBe(100_000)
+    expect(plan.sellVolumeUsd).toBe(0)
+    expect(plan.feesUsd).toBeCloseTo(250, 8)
     expect(plan.pricePath).toHaveLength(101)
-    expect(plan.requiredUsdt).toBeGreaterThan(0)
+    expect(plan.finalState).toEqual(expected)
+  })
+
+  it('alternates fixed buy and sell inputs without changing the requested order count', () => {
+    const state = createPool(100_000, .01)
+    const plan = simulateDailyPlan(state, 5, 1_000, 50_000, fee, 0, { buy: true, sell: true })
+    let expected = state
+    for (const side of ['buy', 'sell', 'buy', 'sell', 'buy'] as const) expected = executeTrade(expected, side, side === 'buy' ? 1_000 : 50_000, fee, 0).state
+
+    expect(plan.orders).toBe(5)
+    expect(plan.buyVolumeUsd).toBe(3_000)
+    expect(plan.pricePath).toHaveLength(6)
+    expect(plan.finalState).toEqual(expected)
   })
 
   it('excludes every daily sell when the sell direction is disabled', () => {
     const state = createPool(10_000, .01)
-    const plan = simulateDailyPlan(state, 100_000, 100, fee, 0, { buy: true, sell: false })
+    const plan = simulateDailyPlan(state, 25, 1_000, 100_000, fee, 0, { buy: true, sell: false })
 
-    expect(plan.orders).toBe(100)
-    expect(plan.buyVolumeUsd).toBeCloseTo(100_000, 8)
+    expect(plan.orders).toBe(25)
+    expect(plan.buyVolumeUsd).toBe(25_000)
     expect(plan.sellVolumeUsd).toBe(0)
     expect(plan.requiredQtm).toBe(0)
     expect(plan.pricePath.at(-1)).toBeGreaterThan(poolPrice(state))
@@ -43,10 +61,10 @@ describe('QTM V2 market-maker calculations', () => {
 
   it('excludes every daily buy when only the sell direction is enabled', () => {
     const state = createPool(10_000, .01)
-    const plan = simulateDailyPlan(state, 5_000, 100, fee, 0, { buy: false, sell: true })
+    const plan = simulateDailyPlan(state, 10, 1_000, 5_000, fee, 0, { buy: false, sell: true })
 
     expect(plan.buyVolumeUsd).toBe(0)
-    expect(plan.sellVolumeUsd).toBeCloseTo(5_000, 8)
+    expect(plan.orders).toBe(10)
     expect(plan.requiredUsdt).toBe(0)
     expect(plan.pricePath.at(-1)).toBeLessThan(poolPrice(state))
   })
@@ -54,7 +72,7 @@ describe('QTM V2 market-maker calculations', () => {
   it('starts the daily plan from the pool produced by the instant trade', () => {
     const initial = { tokenReserve: 1_000_000, quoteReserve: 10_000 }
     const instant = executeTrade(initial, 'buy', 1_000, fee, 0)
-    const plan = simulateDailyPlan(instant.state, 20_000, 20, fee, 0)
+    const plan = simulateDailyPlan(instant.state, 20, 1_000, 25_000, fee, 0)
 
     expect(plan.pricePath[0]).toBeCloseTo(instant.priceAfter, 12)
     expect(plan.pricePath[0]).not.toBeCloseTo(poolPrice(initial), 6)
