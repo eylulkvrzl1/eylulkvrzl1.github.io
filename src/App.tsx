@@ -32,11 +32,9 @@ const TEXT = {
   },
 } as const
 
-const numberFormat = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
-const format = (value: number, digits = 2) => new Intl.NumberFormat('en-US', { maximumFractionDigits: digits }).format(value)
-const money = (value: number | null, digits = 2) => value === null ? '—' : `$${format(value, digits)}`
-const percent = (value: number | null) => value === null ? '—' : `${value >= 0 ? '+' : ''}${format(value)}%`
-const signed = (value: number, digits = 2) => `${value >= 0 ? '+' : ''}${format(value, digits)}`
+type NumberLocale = 'tr-TR' | 'en-GB'
+const formatValue = (value: number, digits = 2, locale: NumberLocale = 'en-GB') => new Intl.NumberFormat(locale, { maximumFractionDigits: digits }).format(value)
+const percentValue = (value: number | null, locale: NumberLocale) => value === null ? '—' : `${value >= 0 ? '+' : ''}${formatValue(value, 2, locale)}%`
 const inputValue = (value: string): NumericValue => value === '' ? '' : Number(value)
 const isNumber = (value: NumericValue): value is number => typeof value === 'number' && Number.isFinite(value)
 const isPositive = (value: NumericValue): value is number => isNumber(value) && value > 0
@@ -56,12 +54,12 @@ function Metric({ label, value, note, accent = false }: { label: string; value: 
   return <div className={`metric ${accent ? 'metric-accent' : ''}`}><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</div>
 }
 
-function PriceChart({ values, labels, changeLabel, priceAxis, orderAxis, orderLabel }: { values: number[]; labels: [string, string, string]; changeLabel: string; priceAxis: string; orderAxis: string; orderLabel: string }) {
+function PriceChart({ values, labels, changeLabel, priceAxis, orderAxis, orderLabel, locale }: { values: number[]; labels: [string, string, string]; changeLabel: string; priceAxis: string; orderAxis: string; orderLabel: string; locale: NumberLocale }) {
   const start = values[0], first = values[1] ?? start, end = values.at(-1) ?? start
   const totalOrders = Math.max(0, values.length - 1)
   const totalChange = start === 0 ? 0 : (end / start - 1) * 100
   const trend = totalChange > .000001 ? 'up' : totalChange < -.000001 ? 'down' : 'flat'
-  const changeText = trend === 'flat' ? '0%' : percent(totalChange)
+  const changeText = trend === 'flat' ? '0%' : percentValue(totalChange, locale)
   const width = 780, height = 275, left = 116, right = 24, top = 24, bottom = 48
   const plotWidth = width - left - right, plotHeight = height - top - bottom
   let rawMin = start, rawMax = start
@@ -79,7 +77,7 @@ function PriceChart({ values, labels, changeLabel, priceAxis, orderAxis, orderLa
   const areaPath = `${linePath} L ${x(totalOrders)} ${top + plotHeight} L ${left} ${top + plotHeight} Z`
   const yTicks = Array.from({ length: 5 }, (_, index) => max - index * spread / 4)
   const xTicks = Array.from(new Set([0, Math.round(totalOrders / 2), totalOrders]))
-  const priceText = (value: number) => value >= 1 ? format(value, 4) : value >= .0001 ? format(value, 6) : value.toExponential(2)
+  const priceText = (value: number) => value >= 1 ? formatValue(value, 4, locale) : value >= .0001 ? formatValue(value, 6, locale) : value.toExponential(2)
   return <div className={`price-chart price-chart-${trend}`} aria-live="polite">
     <div className="chart-kpis">
       <div><span>{labels[0]}</span><strong>${priceText(start)}</strong></div>
@@ -148,6 +146,12 @@ export default function App() {
   const [marketData, setMarketData] = useState<MarketData>(snapshot)
   const [liveState, setLiveState] = useState<'loading' | 'live' | 'snapshot'>('loading')
   const t = TEXT[language]
+  const locale: NumberLocale = language === 'tr' ? 'tr-TR' : 'en-GB'
+  const numberFormat = useMemo(() => new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }), [locale])
+  const format = (value: number, digits = 2) => formatValue(value, digits, locale)
+  const money = (value: number | null, digits = 2) => value === null ? '—' : `$${format(value, digits)}`
+  const percent = (value: number | null) => percentValue(value, locale)
+  const signed = (value: number, digits = 2) => `${value >= 0 ? '+' : ''}${format(value, digits)}`
 
   const priceValid = isPositive(initialPrice), quoteValid = isPositive(usdtLiquidity)
   const qtmReserveValid = isPositive(mmQtmReserve), usdtReserveValid = isPositive(mmUsdtReserve)
@@ -229,20 +233,20 @@ export default function App() {
           </div>
           <p className="execution-order">{t.executionOrder}</p>
         </div>
-        <div className="chart-panel panel simple-chart-panel"><div className="panel-title-row chart-title"><div><span className="overline no-rule">x × y = k</span><h3>{t.chartTitle}</h3><p>{t.chartDescription}</p></div></div>{makerValid ? <div className="chart-wrap simple-chart-wrap"><PriceChart values={plan.pricePath} labels={[t.start, t.afterInstant, t.afterDaily]} changeLabel={t.chartChange} priceAxis={t.chartPriceAxis} orderAxis={t.chartOrderAxis} orderLabel={t.chartOrder} /></div> : <div className="validation-panel chart-validation"><b>{t.invalid}</b><span>{t.fixInputs}</span></div>}</div>
+        <div className="chart-panel panel simple-chart-panel"><div className="panel-title-row chart-title"><div><span className="overline no-rule">x × y = k</span><h3>{t.chartTitle}</h3><p>{t.chartDescription}</p></div></div>{makerValid ? <div className="chart-wrap simple-chart-wrap"><PriceChart values={plan.pricePath} labels={[t.start, t.afterInstant, t.afterDaily]} changeLabel={t.chartChange} priceAxis={t.chartPriceAxis} orderAxis={t.chartOrderAxis} orderLabel={t.chartOrder} locale={locale} /></div> : <div className="validation-panel chart-validation"><b>{t.invalid}</b><span>{t.fixInputs}</span></div>}</div>
       </div>
       {makerValid && <div className="panel day-plan-panel">
         <div className="panel-title-row day-plan-heading"><div><span className="overline no-rule">{t.dayTableKicker}</span><h3>{t.dayTableTitle}</h3><p>{t.dayTableDescription}</p></div><div className="plan-period"><b>{t.finalResult}</b><span>{money(plan.daily.at(-1)?.endPrice ?? 0, 6)}</span></div></div>
         <div className="day-plan-scroll">
           <table className="day-plan-table">
-            <thead><tr><th>{t.day}</th><th>{t.totalOrders}</th><th>{t.buyAdded}</th><th>{t.qtmSold}</th><th>{t.qtmReserveEnd}</th><th>{t.qtmChange}</th><th>{t.usdtReserveEnd}</th><th>{t.usdtChange}</th><th>{t.endPrice}</th><th>{t.dailyChange}</th><th>{t.totalChange}</th></tr></thead>
-            <tbody>{plan.daily.map((row) => <tr key={row.day} className={row.day === plan.days ? 'final-day' : ''}><td><b>{row.day}</b></td><td>{format(row.orders, 0)}</td><td>{format(row.buyVolumeUsd)}</td><td>{format(row.sellInputQtm)}</td><td>{format(row.finalState.tokenReserve)}</td><td className={row.tokenReserveChange >= 0 ? 'positive' : 'negative'}>{signed(row.tokenReserveChange)}</td><td>{format(row.finalState.quoteReserve)}</td><td className={row.quoteReserveChange >= 0 ? 'positive' : 'negative'}>{signed(row.quoteReserveChange)}</td><td>{money(row.endPrice, 6)}</td><td className={row.dailyChangePct >= 0 ? 'positive' : 'negative'}>{percent(row.dailyChangePct)}</td><td className={row.totalChangePct >= 0 ? 'positive' : 'negative'}>{percent(row.totalChangePct)}</td></tr>)}</tbody>
+            <thead><tr><th>{t.day}</th><th>{t.totalOrders}</th><th>{t.buyAdded}</th><th>{t.qtmSold}</th><th>{t.qtmReserveEnd}</th><th>{t.qtmChange}</th><th>{t.usdtReserveEnd}</th><th>{t.usdtChange}</th><th>{t.endPrice}</th><th>{t.dailyChange}</th></tr></thead>
+            <tbody>{plan.daily.map((row) => <tr key={row.day} className={row.day === plan.days ? 'final-day' : ''}><td><b>{row.day}</b></td><td>{format(row.orders, 0)}</td><td>{format(row.buyVolumeUsd)}</td><td>{format(row.sellInputQtm)}</td><td>{format(row.finalState.tokenReserve)}</td><td className={row.tokenReserveChange >= 0 ? 'positive' : 'negative'}>{signed(row.tokenReserveChange)}</td><td>{format(row.finalState.quoteReserve)}</td><td className={row.quoteReserveChange >= 0 ? 'positive' : 'negative'}>{signed(row.quoteReserveChange)}</td><td>{money(row.endPrice, 6)}</td><td className={row.dailyChangePct >= 0 ? 'positive' : 'negative'}>{percent(row.dailyChangePct)}</td></tr>)}</tbody>
           </table>
         </div>
       </div>}
     </section>}
 
-    {page === 'live' && <section className="stage active-stage"><div className="section-heading"><div className="stage-number">03</div><div><span className="kicker">{t.liveKicker}</span><h2>{t.liveTitle}</h2><p>{t.liveDescription}</p></div></div><div className="panel live-toolbar"><div className="live-source"><span className={liveState === 'live' ? 'live-dot' : 'snapshot-dot'}>{liveState === 'live' ? t.liveData : t.snapshot}</span><b>{t.source}: {marketData.source}</b><small>{t.updated}: {new Date(marketData.updatedAt).toLocaleString(language === 'tr' ? 'tr-TR' : 'en-US')}</small></div><button className="reset-button" onClick={refresh} disabled={liveState === 'loading'}>{liveState === 'loading' ? t.refreshing : t.refresh}</button></div><div className="live-price panel"><div><span>QUANTUM</span><h3>QTM / USDT</h3><code>{TOKEN_ADDRESS}</code></div><div><span>{t.price}</span><strong>{money(marketData.price, 8)}</strong><small>{percent(marketData.change24)}</small></div></div><div className="metrics-grid live-metrics"><Metric label={t.liquidity} value={money(marketData.liquidity)} accent /><Metric label={t.volume24} value={money(marketData.volume24)} /><Metric label={t.change1} value={percent(marketData.change1)} /><Metric label={t.change24} value={percent(marketData.change24)} /><Metric label={t.fdv} value={money(marketData.fdv, 0)} /><Metric label={t.transactions} value={marketData.transactions === null ? '—' : format(marketData.transactions, 0)} /><Metric label={t.buys} value={marketData.buys === null ? '—' : format(marketData.buys, 0)} /><Metric label={t.sells} value={marketData.sells === null ? '—' : format(marketData.sells, 0)} /><Metric label={t.holders} value={marketData.holders === null ? '—' : format(marketData.holders, 0)} /></div><div className="live-grid"><div className="panel live-pool-card"><div className="panel-title-row"><div><span className="overline no-rule">{t.poolDetails}</span><h3>QTM / USDT</h3></div><span className="network-chip">BSC · V2</span></div><div className="pair-row"><div className="token-mark qtm">Q</div><div><span>{t.qtmReserve}</span><strong>{format(marketData.qtmReserve)}</strong></div></div><div className="pair-divider"><span>+</span></div><div className="pair-row"><div className="token-mark usdt">₮</div><div><span>{t.usdtReserve}</span><strong>{format(marketData.usdtReserve)}</strong></div></div></div><div className="panel details-panel"><div className="detail-row"><span>{t.network}</span><b>BNB Smart Chain</b></div><div className="detail-row"><span>{t.dex}</span><b>PancakeSwap v2</b></div><div className="detail-row"><span>{t.created}</span><b>{marketData.created ? new Date(marketData.created).toLocaleString(language === 'tr' ? 'tr-TR' : 'en-US') : '—'}</b></div><div className="detail-row"><span>{t.poolAddress}</span><code>{POOL_ADDRESS}</code></div><div className="detail-row"><span>{t.tokenAddress}</span><code>{TOKEN_ADDRESS}</code></div><a className="cmc-button" href={CMC_URL} target="_blank" rel="noreferrer">{t.openCmc} ↗</a></div></div></section>}
+    {page === 'live' && <section className="stage active-stage"><div className="section-heading"><div className="stage-number">03</div><div><span className="kicker">{t.liveKicker}</span><h2>{t.liveTitle}</h2><p>{t.liveDescription}</p></div></div><div className="panel live-toolbar"><div className="live-source"><span className={liveState === 'live' ? 'live-dot' : 'snapshot-dot'}>{liveState === 'live' ? t.liveData : t.snapshot}</span><b>{t.source}: {marketData.source}</b><small>{t.updated}: {new Date(marketData.updatedAt).toLocaleString(locale)}</small></div><button className="reset-button" onClick={refresh} disabled={liveState === 'loading'}>{liveState === 'loading' ? t.refreshing : t.refresh}</button></div><div className="live-price panel"><div><span>QUANTUM</span><h3>QTM / USDT</h3><code>{TOKEN_ADDRESS}</code></div><div><span>{t.price}</span><strong>{money(marketData.price, 8)}</strong><small>{percent(marketData.change24)}</small></div></div><div className="metrics-grid live-metrics"><Metric label={t.liquidity} value={money(marketData.liquidity)} accent /><Metric label={t.volume24} value={money(marketData.volume24)} /><Metric label={t.change1} value={percent(marketData.change1)} /><Metric label={t.change24} value={percent(marketData.change24)} /><Metric label={t.fdv} value={money(marketData.fdv, 0)} /><Metric label={t.transactions} value={marketData.transactions === null ? '—' : format(marketData.transactions, 0)} /><Metric label={t.buys} value={marketData.buys === null ? '—' : format(marketData.buys, 0)} /><Metric label={t.sells} value={marketData.sells === null ? '—' : format(marketData.sells, 0)} /><Metric label={t.holders} value={marketData.holders === null ? '—' : format(marketData.holders, 0)} /></div><div className="live-grid"><div className="panel live-pool-card"><div className="panel-title-row"><div><span className="overline no-rule">{t.poolDetails}</span><h3>QTM / USDT</h3></div><span className="network-chip">BSC · V2</span></div><div className="pair-row"><div className="token-mark qtm">Q</div><div><span>{t.qtmReserve}</span><strong>{format(marketData.qtmReserve)}</strong></div></div><div className="pair-divider"><span>+</span></div><div className="pair-row"><div className="token-mark usdt">₮</div><div><span>{t.usdtReserve}</span><strong>{format(marketData.usdtReserve)}</strong></div></div></div><div className="panel details-panel"><div className="detail-row"><span>{t.network}</span><b>BNB Smart Chain</b></div><div className="detail-row"><span>{t.dex}</span><b>PancakeSwap v2</b></div><div className="detail-row"><span>{t.created}</span><b>{marketData.created ? new Date(marketData.created).toLocaleString(locale) : '—'}</b></div><div className="detail-row"><span>{t.poolAddress}</span><code>{POOL_ADDRESS}</code></div><div className="detail-row"><span>{t.tokenAddress}</span><code>{TOKEN_ADDRESS}</code></div><a className="cmc-button" href={CMC_URL} target="_blank" rel="noreferrer">{t.openCmc} ↗</a></div></div></section>}
     <footer><span>QTM Liquidity Lab</span><span>PancakeSwap V2 constant-product AMM</span></footer>
   </div></main>
 }
