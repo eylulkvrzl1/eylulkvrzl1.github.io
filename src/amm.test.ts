@@ -15,6 +15,14 @@ describe('QTM V2 market-maker calculations', () => {
     expect(result.state.quoteReserve).toBe(11_000)
   })
 
+  it('accepts a genuine zero-percent AMM fee', () => {
+    const state = createPool(10_000, .01)
+    const result = executeTrade(state, 'buy', 1_000, 0, 0)
+
+    expect(result.feeValueUsd).toBe(0)
+    expect(result.grossOutput).toBeCloseTo(1_000_000 * 1_000 / 11_000, 10)
+  })
+
   it('applies sell tax before tokens reach the pool', () => {
     const result = executeTrade(createPool(10_000, .01), 'sell', 100_000, fee, .03)
     expect(result.state.tokenReserve).toBe(1_097_000)
@@ -34,6 +42,27 @@ describe('QTM V2 market-maker calculations', () => {
     expect(plan.feesUsd).toBeCloseTo(250, 8)
     expect(plan.pricePath).toHaveLength(101)
     expect(plan.finalState).toEqual(expected)
+  })
+
+  it('treats zero requested orders as a real zero-order plan', () => {
+    const state = createPool(100_000, .01)
+    const plan = simulateDailyPlan(state, 0, 1_000, 100_000, fee, 0, { buy: true, sell: false })
+
+    expect(plan.orders).toBe(0)
+    expect(plan.buyVolumeUsd).toBe(0)
+    expect(plan.sellVolumeUsd).toBe(0)
+    expect(plan.feesUsd).toBe(0)
+    expect(plan.pricePath).toEqual([poolPrice(state)])
+    expect(plan.finalState).toEqual(state)
+  })
+
+  it('keeps the plan idle when zero-size directions are excluded', () => {
+    const state = createPool(100_000, .01)
+    const plan = simulateDailyPlan(state, 100, 0, 0, fee, 0, { buy: false, sell: false })
+
+    expect(plan.orders).toBe(0)
+    expect(plan.pricePath).toHaveLength(1)
+    expect(plan.finalState).toEqual(state)
   })
 
   it('alternates fixed buy and sell inputs without changing the requested order count', () => {
@@ -105,5 +134,13 @@ describe('QTM V2 market-maker calculations', () => {
     const trade = executeTrade(state, 'buy', maxBuyForImpact(10_000, 2, fee), fee, 0)
     expect(trade.impactPct).toBeCloseTo(2, 8)
     expect(poolPrice(trade.state)).toBeGreaterThan(poolPrice(state))
+  })
+
+  it('returns a zero safe-buy amount for a zero movement limit', () => {
+    expect(maxBuyForImpact(10_000, 0, fee)).toBe(0)
+  })
+
+  it('rejects a 100-percent fee instead of producing an invalid result', () => {
+    expect(() => executeTrade(createPool(10_000, .01), 'buy', 1_000, 1, 0)).toThrow(/Fee/)
   })
 })

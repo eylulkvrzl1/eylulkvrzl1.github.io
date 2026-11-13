@@ -32,6 +32,11 @@ const positive = (value: number, label: string) => {
   return value
 }
 
+const nonnegative = (value: number, label: string) => {
+  if (!Number.isFinite(value) || value < 0) throw new Error(`${label} must be zero or positive`)
+  return value
+}
+
 const rate = (value: number, label: string) => {
   if (!Number.isFinite(value) || value < 0 || value >= 1) throw new Error(`${label} must be between 0 and 1`)
   return value
@@ -101,7 +106,7 @@ export type DailyPlanSides = { buy: boolean; sell: boolean }
 export function simulateDailyPlan(initial: PoolState, requestedOrders: number, buyInputUsd: number, sellInputQtm: number, feeRate: number, tokenTaxRate: number, sides: DailyPlanSides = { buy: true, sell: true }): DailyPlan {
   const hasBothSides = sides.buy && sides.sell
   const hasSelectedSide = sides.buy || sides.sell
-  const orders = hasSelectedSide ? Math.max(1, Math.round(requestedOrders)) : 0
+  const orders = hasSelectedSide ? Math.max(0, Math.round(nonnegative(requestedOrders, 'Orders'))) : 0
   if (sides.buy) positive(buyInputUsd, 'Buy input')
   if (sides.sell) positive(sellInputQtm, 'Sell input')
   let state = { ...initial }
@@ -152,7 +157,7 @@ export function simulateDailyPlan(initial: PoolState, requestedOrders: number, b
 
 export function maxBuyForImpact(quoteReserve: number, impactPct: number, feeRate: number) {
   positive(quoteReserve, 'Quote reserve')
-  positive(impactPct, 'Impact')
+  nonnegative(impactPct, 'Impact')
   rate(feeRate, 'Fee')
   const a = 1 - feeRate
   const d = impactPct / 100
