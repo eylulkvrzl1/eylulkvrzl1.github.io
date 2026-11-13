@@ -1,4 +1,5 @@
 export type Side = 'buy' | 'sell'
+export const MAX_DAILY_ORDERS = 100_000
 
 export type PoolState = {
   tokenReserve: number
@@ -106,7 +107,9 @@ export type DailyPlanSides = { buy: boolean; sell: boolean }
 export function simulateDailyPlan(initial: PoolState, requestedOrders: number, buyInputUsd: number, sellInputQtm: number, feeRate: number, tokenTaxRate: number, sides: DailyPlanSides = { buy: true, sell: true }): DailyPlan {
   const hasBothSides = sides.buy && sides.sell
   const hasSelectedSide = sides.buy || sides.sell
-  const orders = hasSelectedSide ? Math.max(0, Math.round(nonnegative(requestedOrders, 'Orders'))) : 0
+  const normalizedOrders = Math.max(0, Math.round(nonnegative(requestedOrders, 'Orders')))
+  if (normalizedOrders > MAX_DAILY_ORDERS) throw new Error(`Orders cannot exceed ${MAX_DAILY_ORDERS}`)
+  const orders = hasSelectedSide ? normalizedOrders : 0
   if (sides.buy) positive(buyInputUsd, 'Buy input')
   if (sides.sell) positive(sellInputQtm, 'Sell input')
   let state = { ...initial }

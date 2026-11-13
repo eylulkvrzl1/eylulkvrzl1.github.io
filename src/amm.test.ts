@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createPool, executeSelectedTrades, executeTrade, maxBuyForImpact, poolPrice, simulateDailyPlan } from './amm'
+import { createPool, executeSelectedTrades, executeTrade, MAX_DAILY_ORDERS, maxBuyForImpact, poolPrice, simulateDailyPlan } from './amm'
 
 describe('QTM V2 market-maker calculations', () => {
   const fee = .0025
@@ -54,6 +54,12 @@ describe('QTM V2 market-maker calculations', () => {
     expect(plan.feesUsd).toBe(0)
     expect(plan.pricePath).toEqual([poolPrice(state)])
     expect(plan.finalState).toEqual(state)
+  })
+
+  it('rejects daily order counts above the browser-safe limit', () => {
+    const state = createPool(100_000, .01)
+
+    expect(() => simulateDailyPlan(state, MAX_DAILY_ORDERS + 1, 1_000, 100_000, fee, 0, { buy: true, sell: false })).toThrow(/Orders cannot exceed/)
   })
 
   it('keeps the plan idle when zero-size directions are excluded', () => {
