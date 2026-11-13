@@ -18,6 +18,15 @@ export type TradeResult = {
   impactPct: number
 }
 
+export type TradeSequenceResult = {
+  state: PoolState
+  buy: TradeResult | null
+  sell: TradeResult | null
+  priceBefore: number
+  priceAfter: number
+  impactPct: number
+}
+
 const positive = (value: number, label: string) => {
   if (!Number.isFinite(value) || value <= 0) throw new Error(`${label} must be positive`)
   return value
@@ -57,6 +66,18 @@ export function executeTrade(state: PoolState, side: Side, input: number, feeRat
   const next = { tokenReserve: x + poolTokenInput, quoteReserve: y - output }
   const priceAfter = poolPrice(next)
   return { state: next, side, input, output, grossOutput: output, feeValueUsd: poolTokenInput * feeRate * priceBefore, taxValueUsd: (input - poolTokenInput) * priceBefore, priceBefore, priceAfter, impactPct: (priceAfter / priceBefore - 1) * 100 }
+}
+
+export function executeSelectedTrades(state: PoolState, buyInput: number | null, sellInput: number | null, feeRate: number, tokenTaxRate: number): TradeSequenceResult {
+  const priceBefore = poolPrice(state)
+  let next = { ...state }
+  const buy = buyInput === null ? null : executeTrade(next, 'buy', buyInput, feeRate, tokenTaxRate)
+  if (buy) next = buy.state
+  const sell = sellInput === null ? null : executeTrade(next, 'sell', sellInput, feeRate, tokenTaxRate)
+  if (sell) next = sell.state
+  const priceAfter = poolPrice(next)
+
+  return { state: next, buy, sell, priceBefore, priceAfter, impactPct: (priceAfter / priceBefore - 1) * 100 }
 }
 
 export type DailyPlan = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createPool, executeTrade, maxBuyForImpact, poolPrice, simulateDailyPlan } from './amm'
+import { createPool, executeSelectedTrades, executeTrade, maxBuyForImpact, poolPrice, simulateDailyPlan } from './amm'
 
 describe('QTM V2 market-maker calculations', () => {
   const fee = .0025
@@ -37,6 +37,28 @@ describe('QTM V2 market-maker calculations', () => {
 
     expect(plan.pricePath[0]).toBeCloseTo(instant.priceAfter, 12)
     expect(plan.pricePath[0]).not.toBeCloseTo(poolPrice(initial), 6)
+  })
+
+  it('can include a buy while leaving the sell completely disabled', () => {
+    const initial = createPool(10_000, .01)
+    const selected = executeSelectedTrades(initial, 1_000, null, fee, 0)
+    const buyOnly = executeTrade(initial, 'buy', 1_000, fee, 0)
+
+    expect(selected.buy).not.toBeNull()
+    expect(selected.sell).toBeNull()
+    expect(selected.state).toEqual(buyOnly.state)
+    expect(selected.priceAfter).toBe(buyOnly.priceAfter)
+  })
+
+  it('applies independently selected buy and sell amounts in a clear order', () => {
+    const initial = createPool(10_000, .01)
+    const selected = executeSelectedTrades(initial, 1_000, 25_000, fee, 0)
+    const buy = executeTrade(initial, 'buy', 1_000, fee, 0)
+    const sell = executeTrade(buy.state, 'sell', 25_000, fee, 0)
+
+    expect(selected.buy?.input).toBe(1_000)
+    expect(selected.sell?.input).toBe(25_000)
+    expect(selected.state).toEqual(sell.state)
   })
 
   it('solves the maximum buy for a requested movement limit', () => {
