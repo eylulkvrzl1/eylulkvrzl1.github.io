@@ -227,6 +227,53 @@ input[type='number']::-webkit-inner-spin-button, input[type='number']::-webkit-o
 .table-total strong { color: #fff; }
 footer { display: flex; justify-content: space-between; color: #464e5d; font-size: 9px; letter-spacing: .05em; margin-top: 80px; padding-top: 22px; border-top: 1px solid #171c26; }
 
+/* Multi-page application controls reuse the existing visual system. */
+.app-tabs { position: sticky; top: 12px; z-index: 10; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: min(560px, 100%); margin: 0 auto 10px; padding: 5px; background: #0b0f17e8; backdrop-filter: blur(14px); }
+.app-tabs button { border: 1px solid transparent; border-radius: 8px; background: transparent; color: #7f899b; padding: 10px 14px; font-size: 10px; font-weight: 750; cursor: pointer; transition: .2s; }
+.app-tabs button:hover { color: #c7cbd5; background: #151a24; }
+.app-tabs button.active { color: #fff; border-color: #4a456f; background: linear-gradient(135deg, #28223e, #202b4a); box-shadow: 0 5px 18px #0004; }
+.active-stage { padding-top: 60px; min-height: 680px; }
+.mm-layout { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 14px; }
+.mm-input-panel, .mm-summary, .instant-panel { padding: 22px 24px; }
+.mm-input-panel .field-grid { grid-template-columns: 1fr 1fr; }
+.mm-summary .metrics-grid { margin-top: 14px; }
+.mm-health { max-width: 290px; display: flex; align-items: center; gap: 9px; border: 1px solid #24483e; border-radius: 9px; background: #0e211d; padding: 8px 10px; }
+.mm-health.warn { border-color: #5a2d37; background: #251319; }
+.mm-health b { color: var(--teal); font-size: 13px; }
+.mm-health.warn b { color: #fb7185; }
+.mm-health span { color: #8f9aab; font-size: 8px; line-height: 1.35; }
+.mm-metrics { grid-template-columns: repeat(3, 1fr); }
+.mm-lower { display: grid; grid-template-columns: 390px minmax(0, 1fr); gap: 14px; margin-top: 14px; }
+.side-switch { display: flex; gap: 5px; }
+.side-switch button { border: 1px solid #303746; background: #151a24; color: #8c96a7; border-radius: 7px; padding: 7px 10px; font-size: 8px; font-weight: 750; cursor: pointer; }
+.side-switch button.active.buy { border-color: #246a5b; color: #6ee5c8; background: #123129; }
+.side-switch button.active.sell { border-color: #6b303a; color: #ff8b9c; background: #351820; }
+.instant-panel > .field { margin-top: 16px; }
+.instant-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.instant-panel .formula-strip { grid-template-columns: 1fr; gap: 6px; }
+.live-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 17px; }
+.live-source { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.live-source > span { color: var(--teal); font-size: 9px; font-weight: 750; }
+.live-source > b { font-size: 10px; }
+.live-source > small { color: #697386; font-size: 8px; }
+.snapshot-dot { color: #f4b665 !important; }
+.live-price { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 22px 24px; background: linear-gradient(135deg, #19172a, #172440); }
+.live-price > div:first-child > span { color: #8e84db; font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+.live-price h3 { margin: 5px 0 7px; font-size: 19px; }
+.live-price code { color: #717b8d; font-size: 8px; }
+.live-price > div:last-child { text-align: right; }
+.live-price > div:last-child > span { display: block; color: #7f899b; font-size: 9px; }
+.live-price strong { display: block; margin-top: 4px; font-size: 27px; }
+.live-price small { color: var(--teal); font-size: 9px; }
+.live-metrics { grid-template-columns: repeat(5, 1fr); }
+.live-grid { display: grid; grid-template-columns: .9fr 1.1fr; gap: 14px; margin-top: 14px; }
+.live-pool-card, .details-panel { padding: 22px 24px; }
+.detail-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 12px; align-items: center; min-height: 41px; border-bottom: 1px solid #1f2633; }
+.detail-row span { color: #788294; font-size: 9px; }
+.detail-row b, .detail-row code { min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: right; font-size: 9px; }
+.detail-row code { color: #a7b0c0; }
+.cmc-button { display: block; margin-top: 16px; border: 1px solid #4a456f; border-radius: 8px; background: linear-gradient(135deg, #28223e, #202b4a); color: #dedaff; padding: 10px 12px; text-align: center; text-decoration: none; font-size: 9px; font-weight: 750; }
+
 @media (max-width: 900px) {
   .page-shell { width: min(100% - 28px, 760px); padding-top: 44px; }
   .setup-grid, .allocation-grid { grid-template-columns: 1fr; }
@@ -236,6 +283,9 @@ footer { display: flex; justify-content: space-between; color: #464e5d; font-siz
   .steps-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .step-line { display: none; }
   .allocation-inputs { grid-template-columns: repeat(2, 1fr); }
+  .mm-layout, .mm-lower { grid-template-columns: 340px minmax(0, 1fr); }
+  .mm-metrics { grid-template-columns: 1fr 1fr; }
+  .live-metrics { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (max-width: 620px) {
@@ -272,4 +322,17 @@ footer { display: flex; justify-content: space-between; color: #464e5d; font-siz
   .category i { margin-right: 7px; }
   .donut-wrap { height: 300px; }
   footer { flex-direction: column; gap: 7px; margin-top: 55px; }
+  .app-tabs { top: 6px; }
+  .app-tabs button { padding: 9px 5px; font-size: 8px; }
+  .active-stage { padding-top: 46px; }
+  .mm-layout, .mm-lower, .live-grid { grid-template-columns: 1fr; }
+  .mm-input-panel .field-grid { grid-template-columns: 1fr; }
+  .mm-health { max-width: 170px; }
+  .instant-results, .live-metrics { grid-template-columns: 1fr 1fr; }
+  .live-toolbar, .live-source { align-items: flex-start; }
+  .live-source { flex-direction: column; gap: 5px; }
+  .live-price { align-items: flex-start; flex-direction: column; }
+  .live-price > div:last-child { text-align: left; margin-top: 18px; }
+  .live-price code { display: block; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  .detail-row { grid-template-columns: 100px minmax(0, 1fr); }
 }
