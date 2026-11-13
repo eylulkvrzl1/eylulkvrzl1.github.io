@@ -30,6 +30,15 @@ describe('QTM V2 market-maker calculations', () => {
     expect(plan.requiredUsdt).toBeGreaterThan(0)
   })
 
+  it('starts the daily plan from the pool produced by the instant trade', () => {
+    const initial = { tokenReserve: 1_000_000, quoteReserve: 10_000 }
+    const instant = executeTrade(initial, 'buy', 1_000, fee, 0)
+    const plan = simulateDailyPlan(instant.state, 20_000, 20, fee, 0)
+
+    expect(plan.pricePath[0]).toBeCloseTo(instant.priceAfter, 12)
+    expect(plan.pricePath[0]).not.toBeCloseTo(poolPrice(initial), 6)
+  })
+
   it('solves the maximum buy for a requested movement limit', () => {
     const state = createPool(10_000, .01)
     const trade = executeTrade(state, 'buy', maxBuyForImpact(10_000, 2, fee), fee, 0)
